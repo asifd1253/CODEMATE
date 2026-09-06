@@ -2,20 +2,24 @@ const express = require("express");
 
 const app = express();
 
-const { adminAuth, userAuth } = require("./middlewares/auth.js");
-
-app.use("/admin", adminAuth);
-
-app.post("/user/login", (req, res) => {
-  res.send("User loggedin successful."); 
+// if we have err in out callback function then the path / will ignored
+app.use("/", (err, req, res, next) => {
+  // console.log(err);
+  // if (err) {
+  //   res.status(500).send("something went wrong");
+  // }
+  res.send("response from use path");
 });
-
-app.get("/user/data", userAuth, (req, res) => {
+app.get("/getUserData", (req, res, next) => {
+  throw new Error("dlflsdjflkj");
   res.send("User data send");
 });
-
-app.get("/admin/getAllData", (req, res) => {
-  res.send("Take all data.");
+app.use("/", (err, req, res, next) => {
+  // console.log(err);
+  if (err) {
+    res.status(500).send("something went wrong");
+  }
+  res.send("response from use path");
 });
 
 app.listen(3000, () => {
