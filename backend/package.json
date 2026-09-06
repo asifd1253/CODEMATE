@@ -1,0 +1,19 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "This is a backend microservice",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./src/app.js",
+    "dev": "nodemon ./src/app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "asif"
+  ],
+  "author": "Asif",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
