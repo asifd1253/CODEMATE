@@ -1,27 +1,32 @@
 const express = require("express");
+const connectDB = require("./config/database.js");
+const Users = require("./models/users.js");
 
 const app = express();
 
-// if we have err in out callback function then the path / will ignored
-app.use("/", (err, req, res, next) => {
-  // console.log(err);
-  // if (err) {
-  //   res.status(500).send("something went wrong");
-  // }
-  res.send("response from use path");
-});
-app.get("/getUserData", (req, res, next) => {
-  throw new Error("dlflsdjflkj");
-  res.send("User data send");
-});
-app.use("/", (err, req, res, next) => {
-  // console.log(err);
-  if (err) {
-    res.status(500).send("something went wrong");
+app.post("/signup", async (req, res) => {
+  const user = new Users({
+    firstName: "Virat",
+    lastName: "Kohli",
+    emailId: "kohli@gmail.com",
+    password: "kohli@123",
+  });
+
+  try {
+    await user.save();
+    res.send("User data created successfully.");
+  } catch (error) {
+    res.status(400).send(error.message);
   }
-  res.send("response from use path");
 });
 
-app.listen(3000, () => {
-  console.log("Server is running on port 3000");
-});
+connectDB()
+  .then(() => {
+    console.log("Connection successfully established...");
+    app.listen(3000, () => {
+      console.log("Server is running on port 3000");
+    });
+  })
+  .catch((err) => {
+    console.error("Database cannot connected!!!");
+  });
