@@ -4,6 +4,7 @@ const Users = require("./models/users.js");
 
 const app = express();
 
+// It is a middleware to run all the time to convert json into JS object
 app.use(express.json());
 
 app.post("/signup", async (req, res) => {
@@ -36,6 +37,24 @@ app.get("/fetch", async (req, res) => {
     res.status(400).send(error.message);
   }
 });
+
+app.delete("/delete", async (req, res) => {
+  try {
+    await Users.findByIdAndDelete(req.body.userId);
+    res.send("User deleted successfully.");
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+});
+
+app.patch("/user", async(req, res)=>{
+  try {
+    await Users.findByIdAndUpdate(req.body.userId, req.body);
+    res.send("User updated successfuly.");
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+})
 
 connectDB()
   .then(() => {
