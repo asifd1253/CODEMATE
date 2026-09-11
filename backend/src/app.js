@@ -66,6 +66,7 @@ app.patch("/user/:userId", async (req, res) => {
     if (!isUpdateAllowed) {
       throw new Error("Update not allowed");
     }
+
     await User.findByIdAndUpdate(userId, data, {
       returnDocument: "after",
       runValidators: true,

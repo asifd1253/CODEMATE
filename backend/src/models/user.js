@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const validator = require("validator");
 
 const userSchema = mongoose.Schema(
   {
@@ -15,10 +16,20 @@ const userSchema = mongoose.Schema(
       trim: true,
       required: true,
       unique: true,
+      validate(value) {
+        if (!validator.isEmail(value)) {
+          throw new Error("Email is invalid:" + value);
+        }
+      },
     },
     password: {
       type: String,
       required: true,
+      validate(value) {
+        if (!validator.isStrongPassword(value)) {
+          throw new Error("Password is not strong enough");
+        }
+      },
     },
     age: {
       type: Number,
@@ -37,6 +48,11 @@ const userSchema = mongoose.Schema(
       type: String,
       default:
         "https://imgs.search.brave.com/-jEdCYfJyeaHlEjKV17YbcXIBU6O08qlFR84iZlQSY8/rs:fit:500:0:1:0/g:ce/aHR0cHM6Ly9zdGF0/aWMudmVjdGVlenku/Y29tL3N5c3RlbS9y/ZXNvdXJjZXMvdGh1/bWJuYWlscy8wNzkv/MDAyLzkxOC9zbWFs/bC8zZC1kZWZhdWx0/LXVzZXItcHJvZmls/ZS1hdmF0YXItY2ly/Y2xlLWljb24tcG5n/LnBuZw",
+      validate(value) {
+        if (!validator.isURL(value)) {
+          throw new Error("Photo URL is invalid:" + value);
+        }
+      },
     },
     about: {
       type: String,
@@ -46,6 +62,10 @@ const userSchema = mongoose.Schema(
     },
     skills: {
       type: [String],
+      validate: {
+        validator: (skills) => skills.length <= 50,
+        message: "Skills should not exceed 50",
+      },
     },
   },
   {
