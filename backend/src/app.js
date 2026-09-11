@@ -1,6 +1,8 @@
 const express = require("express");
 const connectDB = require("./config/database.js");
-const Users = require("./models/users.js");
+const User = require("./models/user.js");
+const { validateSignUpData } = require("./utils/validate.js");
+const bcrypt = require("bcrypt");
 
 const app = express();
 
@@ -8,9 +10,19 @@ const app = express();
 app.use(express.json());
 
 app.post("/signup", async (req, res) => {
-  const user = new Users(req.body);
-
   try {
+    validateSignUpData(req);
+
+    const { firstName, lastName, emailId, password } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    console.log(hashedPassword);
+
+    const user = new User({
+      firstName,
+      lastName,
+      emailId,
+      password:hashedPassword,
+    });
     await user.save();
     res.send("User data created successfully.");
   } catch (error) {
@@ -18,9 +30,29 @@ app.post("/signup", async (req, res) => {
   }
 });
 
+app.post("/login", async (req, res)=>{
+  try {
+    const {emailId,password}=req.body;
+
+    const user=await User.findOne({emailId});
+    if(!user){
+      throw new Error("Invalid credentials");
+    }
+    const isPasswordValid=await bcrypt.compare(password, user.password);
+    if(isPasswordValid){
+      res.send("Login Successful")
+    }else{
+      throw new Error("Invalid credentials");
+    }
+
+  } catch (error) {
+    res.status(400).send(error.message);
+  }
+})
+
 app.get("/user", async (req, res) => {
   try {
-    const user = await Users.find({ emailId: req.body.emailId });
+    const user = await User.find({ emailId: req.body.emailId });
     if (!user) {
       return res.status(404).send("User Not found");
     }
@@ -32,7 +64,7 @@ app.get("/user", async (req, res) => {
 
 app.get("/fetch", async (req, res) => {
   try {
-    res.send(await Users.find({}));
+    res.send(await User.find({}));
   } catch (error) {
     res.status(400).send(error.message);
   }
@@ -40,21 +72,42 @@ app.get("/fetch", async (req, res) => {
 
 app.delete("/delete", async (req, res) => {
   try {
-    await Users.findByIdAndDelete(req.body.userId);
+    await User.findByIdAndDelete(req.body.userId);
     res.send("User deleted successfully.");
   } catch (error) {
     res.status(400).send(error.message);
   }
 });
 
-app.patch("/user", async(req, res)=>{
+app.patch("/user/:userId", async (req, res) => {
+  const userId = req.params?.userId;
+  const data = req.body;
   try {
-    await Users.findByIdAndUpdate(req.body.userId, req.body);
+    const ALLOWED_UPDATES = [
+      "password",
+      "age",
+      "gender",
+      "photoUrl",
+      "about",
+      "skills",
+    ];
+
+    const isUpdateAllowed = Object.keys(data).every((key) => {
+      return ALLOWED_UPDATES.includes(key);
+    });
+    if (!isUpdateAllowed) {
+      throw new Error("Update not allowed");
+    }
+
+    await User.findByIdAndUpdate(userId, data, {
+      returnDocument: "after",
+      runValidators: true,
+    });
     res.send("User updated successfuly.");
   } catch (error) {
     res.status(400).send(error.message);
   }
-})
+});
 
 connectDB()
   .then(() => {
