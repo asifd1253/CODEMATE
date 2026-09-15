@@ -3,11 +3,14 @@ const connectDB = require("./config/database.js");
 const User = require("./models/user.js");
 const { validateSignUpData } = require("./utils/validate.js");
 const bcrypt = require("bcrypt");
+const cookieParser = require("cookie-parser");
+const { userAuth } = require("./middlewares/auth.js");
 
 const app = express();
 
 // It is a middleware to run all the time to convert json into JS object
 app.use(express.json());
+app.use(cookieParser());
 
 app.post("/signup", async (req, res) => {
   try {
@@ -15,13 +18,13 @@ app.post("/signup", async (req, res) => {
 
     const { firstName, lastName, emailId, password } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
-    console.log(hashedPassword);
+    // console.log(hashedPassword);
 
     const user = new User({
       firstName,
       lastName,
       emailId,
-      password:hashedPassword,
+      password: hashedPassword,
     });
     await user.save();
     res.send("User data created successfully.");
@@ -30,83 +33,39 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-app.post("/login", async (req, res)=>{
+app.post("/login", async (req, res) => {
   try {
-    const {emailId,password}=req.body;
+    const { emailId, password } = req.body;
 
-    const user=await User.findOne({emailId});
-    if(!user){
+    const user = await User.findOne({ emailId });
+    if (!user) {
       throw new Error("Invalid credentials");
     }
-    const isPasswordValid=await bcrypt.compare(password, user.password);
-    if(isPasswordValid){
-      res.send("Login Successful")
-    }else{
+    if (await user.isPasswordValid(password)) {
+      res.cookie("loginToken", user.getJWT());
+      res.send("Login Successful");
+    } else {
       throw new Error("Invalid credentials");
     }
-
   } catch (error) {
     res.status(400).send(error.message);
   }
-})
+});
 
-app.get("/user", async (req, res) => {
+app.get("/profile", userAuth, async (req, res) => {
   try {
-    const user = await User.find({ emailId: req.body.emailId });
-    if (!user) {
-      return res.status(404).send("User Not found");
-    }
+    const user = req.user;
+
     res.send(user);
   } catch (error) {
     res.status(400).send(error.message);
   }
 });
 
-app.get("/fetch", async (req, res) => {
-  try {
-    res.send(await User.find({}));
-  } catch (error) {
-    res.status(400).send(error.message);
-  }
-});
+app.post("/sendConRequest", userAuth, async (req, res) => {
+  const { firstName } = req.user;
 
-app.delete("/delete", async (req, res) => {
-  try {
-    await User.findByIdAndDelete(req.body.userId);
-    res.send("User deleted successfully.");
-  } catch (error) {
-    res.status(400).send(error.message);
-  }
-});
-
-app.patch("/user/:userId", async (req, res) => {
-  const userId = req.params?.userId;
-  const data = req.body;
-  try {
-    const ALLOWED_UPDATES = [
-      "password",
-      "age",
-      "gender",
-      "photoUrl",
-      "about",
-      "skills",
-    ];
-
-    const isUpdateAllowed = Object.keys(data).every((key) => {
-      return ALLOWED_UPDATES.includes(key);
-    });
-    if (!isUpdateAllowed) {
-      throw new Error("Update not allowed");
-    }
-
-    await User.findByIdAndUpdate(userId, data, {
-      returnDocument: "after",
-      runValidators: true,
-    });
-    res.send("User updated successfuly.");
-  } catch (error) {
-    res.status(400).send(error.message);
-  }
+  res.send("Request came from " + firstName);
 });
 
 connectDB()
