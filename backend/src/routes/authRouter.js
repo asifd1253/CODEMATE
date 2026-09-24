@@ -3,7 +3,7 @@ const authRouter = express.Router();
 
 const { validateSignUpData } = require("../utils/validate");
 const bcrypt = require("bcrypt");
-const User = require("../models/user");
+const User = require("../models/User");
 
 authRouter.post("/signup", async (req, res) => {
   try {
@@ -35,7 +35,7 @@ authRouter.post("/login", async (req, res) => {
     if (!user) {
       throw new Error("Invalid credentials");
     }
-    if (await user.isPasswordValid(password)) {
+    if (await user.isPasswordSame(password)) {
       res.cookie("loginToken", user.getJWT());
       res.send("Login Successful");
     } else {
@@ -44,6 +44,10 @@ authRouter.post("/login", async (req, res) => {
   } catch (error) {
     res.status(400).send(error.message);
   }
+});
+
+authRouter.get("/logout", async (req, res) => {
+  res.clearCookie("loginToken").send("Logout successful");
 });
 
 module.exports = authRouter;

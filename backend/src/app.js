@@ -1,7 +1,7 @@
 const express = require("express");
 const app = express();
 
-const connectDB = require("./config/database.js");
+const connectDB = require("./config/connectDB.js");
 const cookieParser = require("cookie-parser");
 
 // It is a middleware to run all the time to convert json into JS object

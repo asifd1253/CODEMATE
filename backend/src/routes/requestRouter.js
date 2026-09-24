@@ -1,9 +1,9 @@
 const express = require("express");
 const requestRouter = express.Router();
 
-const { userAuth } = require("../middlewares/auth");
+const { authenticateUser } = require("../middlewares/authMiddleware");
 
-requestRouter.post("/sendConRequest", userAuth, async (req, res) => {
+requestRouter.post("/sendConRequest", authenticateUser, async (req, res) => {
   const { firstName } = req.user;
 
   res.send("Request came from " + firstName);
