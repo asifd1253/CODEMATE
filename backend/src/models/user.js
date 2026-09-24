@@ -82,7 +82,7 @@ userSchema.methods.getJWT = function () {
   return cookieToken;
 };
 
-userSchema.methods.isPasswordValid = async function (password) {
+userSchema.methods.isPasswordSame = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 
