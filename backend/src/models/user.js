@@ -77,7 +77,7 @@ const userSchema = mongoose.Schema(
 
 userSchema.methods.getJWT = function () {
   const cookieToken = jwt.sign({ _id: this._id }, "CODEMATE@jwttoken", {
-    expiresIn: "1h",
+    expiresIn: "1d",
   });
   return cookieToken;
 };
