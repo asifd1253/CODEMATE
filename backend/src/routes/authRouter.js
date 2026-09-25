@@ -7,25 +7,46 @@ const User = require("../models/User");
 
 authRouter.post("/signup", async (req, res) => {
   try {
+    const {
+      firstName,
+      lastName,
+      emailId,
+      password,
+      age,
+      gender,
+      photoUrl,
+      about,
+      skills,
+    } = req.body;
+
     validateSignUpData(req);
 
-    const { firstName, lastName, emailId, password } = req.body;
-    const hashedPassword = await bcrypt.hash(password, 10);
-    // console.log(hashedPassword);
+    const passwordHash = await bcrypt.hash(password, 10);
 
     const user = new User({
       firstName,
       lastName,
       emailId,
-      password: hashedPassword,
+      password: passwordHash,
+      age,
+      gender,
+      photoUrl,
+      about,
+      skills,
     });
+
     await user.save();
-    res.send("User data created successfully.");
+
+    res.status(201).json({
+      message: "User created successfully",
+      data: user,
+    });
   } catch (error) {
-    res.status(400).send(error.message);
+    res.status(400).json({
+      error: error.message,
+    });
   }
 });
-
 authRouter.post("/login", async (req, res) => {
   try {
     const { emailId, password } = req.body;
