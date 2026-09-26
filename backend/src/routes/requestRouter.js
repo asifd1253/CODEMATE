@@ -60,4 +60,48 @@ requestRouter.post(
   },
 );
 
+requestRouter.post(
+  "/request/review/:status/:requestId",
+  authenticateUser,
+  async (req, res) => {
+    try {
+      const curUser = req.user;
+
+      const isStatusAllowed = ["accepted", "rejected"].includes(
+        req.params.status,
+      );
+      if (!isStatusAllowed) {
+        return res
+          .status(400)
+          .json({ message: "Staus invalid please give appropriate status" });
+      }
+
+      const connectRequest = await Connect.findOne({
+        toUserId: curUser._id,
+        _id: req.params.requestId,
+        status: "interested",
+      });
+
+      if (!connectRequest) {
+        return res
+          .status(404)
+          .json({ message: "Connection not found please try again" });
+      }
+
+      connectRequest.status = req.params.status;
+
+      const resultData = await connectRequest.save();
+
+      res.status(200).json({
+        message: "Request Accepted check the request document",
+        resultData: resultData,
+      });
+    } catch (error) {
+      res.status(400).json({
+        error: error.message,
+      });
+    }
+  },
+);
+
 module.exports = requestRouter;
