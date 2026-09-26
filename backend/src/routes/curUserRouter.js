@@ -8,6 +8,28 @@ const User = require("../models/User.js");
 const OTHERS_USER_SAFE_DATA =
   "firstName lastName age skills photUrl gender about";
 
+curUserRouter.get(
+  "/user/requests/received",
+  authenticateUser,
+  async (req, res) => {
+    try {
+      const curUser = req.user;
+
+      const totalRequests = await Connect.find({
+        toUserId: curUser._id,
+        status: "interested",
+      }).populate("fromUserId", OTHERS_USER_SAFE_DATA);
+
+      res.status(200).json({
+        message: "These are the total requests",
+        apiResult: totalRequests,
+      });
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  },
+);
+
 curUserRouter.get("/user/network", authenticateUser, async (req, res) => {
   try {
     const curUser = req.user;
@@ -38,31 +60,14 @@ curUserRouter.get("/user/network", authenticateUser, async (req, res) => {
   }
 });
 
-curUserRouter.get(
-  "/user/requests/received",
-  authenticateUser,
-  async (req, res) => {
-    try {
-      const curUser = req.user;
-
-      const totalRequests = await Connect.find({
-        toUserId: curUser._id,
-        status: "interested",
-      }).populate("fromUserId", OTHERS_USER_SAFE_DATA);
-
-      res.status(200).json({
-        message: "These are the total requests",
-        apiResult: totalRequests,
-      });
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-    }
-  },
-);
-
 curUserRouter.get("/user/feed", authenticateUser, async (req, res) => {
   try {
     const curUser = req.user;
+
+    const page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    limit = limit > 10 ? 10 : limit;
 
     const totalConnects = await Connect.find({
       $or: [{ fromUserId: curUser._id }, { toUserId: curUser._id }],
@@ -82,7 +87,10 @@ curUserRouter.get("/user/feed", authenticateUser, async (req, res) => {
       _id: {
         $nin: [...hideInFeed],
       },
-    }).select(OTHERS_USER_SAFE_DATA);
+    })
+      .select(OTHERS_USER_SAFE_DATA)
+      .skip(skip)
+      .limit(limit);
 
     res.status(200).json({
       message: `This is your ${feedUsers.length} feed user`,
