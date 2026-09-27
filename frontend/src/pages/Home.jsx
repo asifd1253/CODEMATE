@@ -1,10 +1,12 @@
 import React from "react";
-import Navbar from "../components/Navbar";
-import { Outlet } from "react-router";
-import Footer from "../components/Footer";
+import Hero from "../components/Hero";
 
 const Home = () => {
-  return <div>Home</div>;
+  return (
+    <div>
+      <Hero />
+    </div>
+  );
 };
 
 export default Home;
