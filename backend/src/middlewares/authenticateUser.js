@@ -5,7 +5,9 @@ const authenticateUser = async (req, res, next) => {
   try {
     const { loginToken } = req.cookies;
     if (!loginToken) {
-      throw new Error("Cookies expired login again...");
+      return res
+        .status(401)
+        .json({ message: "Cookies expired login again..." });
     }
     const decodedValue = jwt.verify(loginToken, "CODEMATE@jwttoken");
 

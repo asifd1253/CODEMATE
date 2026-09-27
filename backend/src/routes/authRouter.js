@@ -23,7 +23,7 @@ authRouter.post("/signup", async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    const user = new User({
+    const curUser = new User({
       firstName,
       lastName,
       emailId,
@@ -35,11 +35,11 @@ authRouter.post("/signup", async (req, res) => {
       skills,
     });
 
-    await user.save();
+    await curUser.save();
 
     res.status(201).json({
       message: "User created successfully",
-      data: user,
+      data: curUser,
     });
   } catch (error) {
     res.status(400).json({
@@ -51,14 +51,14 @@ authRouter.post("/login", async (req, res) => {
   try {
     const { emailId, password } = req.body;
 
-    const user = await User.findOne({ emailId });
+    const curUser = await User.findOne({ emailId });
 
-    if (!user) {
+    if (!curUser) {
       throw new Error("Invalid credentials");
     }
-    if (await user.isPasswordSame(password)) {
-      res.cookie("loginToken", user.getJWT());
-      res.send("Login Successful");
+    if (await curUser.isPasswordSame(password)) {
+      res.cookie("loginToken", curUser.getJWT());
+      res.send(curUser);
     } else {
       throw new Error("Invalid credentials");
     }
@@ -67,7 +67,7 @@ authRouter.post("/login", async (req, res) => {
   }
 });
 
-authRouter.get("/logout", async (req, res) => {
+authRouter.post("/logout", async (req, res) => {
   res.clearCookie("loginToken").send("Logout successful");
 });
 

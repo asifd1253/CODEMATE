@@ -1,17 +1,29 @@
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Link, useNavigate, useLocation } from "react-router";
+import { Link, useNavigate } from "react-router";
+import axios from "axios";
+import { BASE_URL } from "../utils/constants";
 import { removeUser } from "../app/userSlice";
 
 const Navbar = () => {
   const curUser = useSelector((store) => store.user);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const location = useLocation();
 
-  const handleLogout = () => {
-    dispatch(removeUser());
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      const res = await axios.post(
+        BASE_URL + "/logout",
+        {},
+        { withCredentials: true },
+      );
+      // console.log(res.data);
+
+      dispatch(removeUser());
+      navigate("/login");
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   return (
@@ -28,7 +40,7 @@ const Navbar = () => {
       </div>
       {/* Profile Dropdown */}
       <div className="flex-none px-2 active:scale-95">
-        {curUser?._id ? (
+        {curUser && (
           <div className="dropdown dropdown-end">
             <label
               tabIndex={0}
@@ -82,11 +94,7 @@ const Navbar = () => {
               </li>
             </ul>
           </div>
-        ) : location.pathname !== "/login" ? (
-          <Link to="/login" className="btn btn-neutral btn-sm rounded-lg px-5">
-            Login
-          </Link>
-        ) : null}
+        )}
       </div>
     </div>
   );

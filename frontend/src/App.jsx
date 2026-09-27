@@ -14,12 +14,12 @@ const App = () => {
       <Provider store={store}>
         <BrowserRouter>
           <Routes>
+            <Route path="/login" element={<Login />} />
             <Route element={<Layout />}>
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<Feed />} />
               <Route path="/feed" element={<Feed />} />
-              <Route path="/login" element={<Login />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="/logout" element={<Login />} />
+              <Route path="/settings" element={<Profile />} />
             </Route>
           </Routes>
         </BrowserRouter>

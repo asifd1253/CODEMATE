@@ -1,10 +1,17 @@
 const express = require("express");
 const app = express();
+const cors = require("cors");
 
 const connectDB = require("./config/connectDB.js");
 const cookieParser = require("cookie-parser");
 
 // It is a middleware to run all the time to convert json into JS object
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(cookieParser());
 
