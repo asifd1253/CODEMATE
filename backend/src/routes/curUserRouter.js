@@ -6,7 +6,7 @@ const Connect = require("../models/Connect.js");
 const User = require("../models/User.js");
 
 const OTHERS_USER_SAFE_DATA =
-  "firstName lastName age skills photUrl gender about";
+  "firstName lastName age skills photoUrl gender about";
 
 curUserRouter.get(
   "/user/requests/received",

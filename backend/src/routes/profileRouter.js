@@ -24,7 +24,7 @@ profileRouter.patch("/profile/edit", authenticateUser, (req, res) => {
     Object.keys(req.body).forEach((key) => (curUser[key] = req.body[key]));
     curUser.save();
     res.status(200).json({
-      message: `${curUser.firstName}, your profile updated`,
+      apiResult: curUser,
     });
   } catch (error) {
     res.status(400).send(error.message);
@@ -45,7 +45,9 @@ profileRouter.patch(
 
       const isCurrentPasswordValid = await curUser.isPasswordSame(curPassword);
       if (!isCurrentPasswordValid) {
-        throw new Error("Current Password not correct");
+        return res.status(401).json({
+          message: "Current Password not correct",
+        });
       }
 
       curUser.password = await bcrypt.hash(newPassword, 10);

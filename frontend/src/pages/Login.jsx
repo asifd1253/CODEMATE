@@ -1,18 +1,44 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { addUser } from "../app/userSlice";
 import { useNavigate } from "react-router";
 import { BASE_URL } from "../utils/constants";
+import { KeyRound, Eye, EyeOff, Mail } from "lucide-react";
 
 const Login = () => {
-  const [emailId, setEmailId] = useState("banwar.singh@test.com");
+  const [emailId, setEmailId] = useState("vikram.singh@test.com");
   const [password, setPassword] = useState("Test@123");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const handleLogin = async () => {
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const res = await axios.get(`${BASE_URL}/profile/view`, {
+          withCredentials: true,
+        });
+
+        dispatch(addUser(res.data));
+        navigate("/feed", { replace: true });
+      } catch (error) {
+        // User is not logged in; stay on the login page.
+        console.log("User is not logged in");
+      }
+    };
+
+    checkUser();
+  }, []);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
     try {
       const res = await axios.post(
         `${BASE_URL}/login`,
@@ -23,73 +49,85 @@ const Login = () => {
         { withCredentials: true },
       );
 
-      // console.log(res.data);
       dispatch(addUser(res.data));
-      navigate("/feed");
+      navigate("/feed", { replace: true });
     } catch (error) {
-      setError(error.response?.data || "An error occurred during login.");
-      console.log(error);
+      setError(
+        error.response?.data || "An error occurred during login.",
+      );
+      console.error("Login error:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="my-10 flex justify-center">
-      <div className="card w-96 border bg-base-200 shadow-xl">
+    <div className="flex min-h-screen items-center justify-center bg-base-100 px-4 py-10">
+      <div className="card w-full max-w-md border border-base-300 bg-base-200 shadow-xl">
         <div className="card-body">
-          <h2 className="card-title justify-center text-2xl">Login</h2>
+          <h2 className="card-title justify-center text-2xl font-bold">
+            Login
+          </h2>
 
-          <div>
-            <label className="input input-bordered my-5 flex items-center gap-2">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 16 16"
-                fill="currentColor"
-                className="h-4 w-4 opacity-70"
-              >
-                <path d="M2.5 3A1.5 1.5 0 0 0 1 4.5v.793c.026.009.051.02.076.032L7.674 8.51c.206.1.446.1.652 0l6.598-3.185A.755.755 0 0 1 15 5.293V4.5A1.5 1.5 0 0 0 13.5 3h-11Z" />
-                <path d="M15 6.954 8.978 9.86a2.25 2.25 0 0 1-1.956 0L1 6.954V11.5A1.5 1.5 0 0 0 2.5 13h11a1.5 1.5 0 0 0 1.5-1.5V6.954Z" />
-              </svg>
+          <form onSubmit={handleLogin} className="flex flex-col gap-4">
+            {/* Email */}
+            <label className="input input-bordered flex items-center gap-3">
+              <span >
+                <Mail size={18} />
+              </span>
+
               <input
-                type="text"
+                type="email"
                 className="grow"
                 placeholder="Email"
                 value={emailId}
                 onChange={(e) => setEmailId(e.target.value)}
+                required
               />
             </label>
-            <label className="input input-bordered my-5 flex items-center gap-2">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 16 16"
-                fill="currentColor"
-                className="h-4 w-4 opacity-70"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M14 6a4 4 0 0 1-4.899 3.899l-1.955 1.955a.5.5 0 0 1-.353.146H5v1.5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-2.293a.5.5 0 0 1 .146-.353l3.955-3.955A4 4 0 1 1 14 6Zm-4-2a.75.75 0 0 0 0 1.5.5.5 0 0 1 .5.5.75.75 0 0 0 1.5 0 2 2 0 0 0-2-2Z"
-                  clipRule="evenodd"
-                />
-              </svg>
+
+            {/* Password */}
+            <label className="input input-bordered flex items-center gap-3">
+              <span>
+                <KeyRound size={18} />
+              </span>
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 className="grow"
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
               />
+              <span>
+                <button
+                  onClick={() => setShowPassword(!showPassword)}
+                  type="button"
+                >
+                  {showPassword ? <EyeOff /> : <Eye />}
+                </button>
+              </span>
             </label>
-          </div>
-          <div className="text-center text-error mb-4">
-            <p>{error}</p>
-          </div>
-          <div className="card-actions justify-center">
+
+            {/* Error */}
+            {error && <p className="text-center text-sm text-error">{error}</p>}
+
+            {/* Submit */}
             <button
-              className="btn btn-neutral btn-active text-lg"
-              onClick={handleLogin}
+              type="submit"
+              disabled={isLoading}
+              className="btn btn-neutral btn-active w-full text-lg"
             >
-              Login
+              {isLoading ? (
+                <>
+                  <span className="loading loading-spinner" />
+                  Logging in...
+                </>
+              ) : (
+                "Login"
+              )}
             </button>
-          </div>
+          </form>
         </div>
       </div>
     </div>
