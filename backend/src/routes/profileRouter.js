@@ -8,7 +8,6 @@ const { validateEditUser } = require("../utils/validate");
 profileRouter.get("/profile/view", authenticateUser, async (req, res) => {
   try {
     const curUser = req.user;
-
     res.send(curUser);
   } catch (error) {
     res.status(400).send(error.message);
