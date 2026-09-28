@@ -54,7 +54,9 @@ authRouter.post("/login", async (req, res) => {
     const curUser = await User.findOne({ emailId });
 
     if (!curUser) {
-      throw new Error("Invalid credentials");
+      return res.status(400).json({
+        message: "Invalid credentials",
+      });
     }
     if (await curUser.isPasswordSame(password)) {
       res.cookie("loginToken", curUser.getJWT());

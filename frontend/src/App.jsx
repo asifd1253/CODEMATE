@@ -7,6 +7,8 @@ import Layout from "./components/Layout";
 import { Provider } from "react-redux";
 import store from "./app/store";
 import Feed from "./pages/Feed";
+import Settings from "./pages/Settings";
+import ResetPassword from "./components/ResetPassword";
 
 const App = () => {
   return (
@@ -19,7 +21,8 @@ const App = () => {
               <Route path="/" element={<Feed />} />
               <Route path="/feed" element={<Feed />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="/settings" element={<Profile />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
             </Route>
           </Routes>
         </BrowserRouter>
