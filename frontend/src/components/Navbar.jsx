@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router";
 import axios from "axios";
 import { BASE_URL } from "../utils/constants";
 import { removeUser } from "../app/userSlice";
-import { removeFeed} from "../app/feedSlice";
+import { removeFeed } from "../app/feedSlice";
 
 const Navbar = () => {
   const curUser = useSelector((store) => store.user);
@@ -82,6 +82,24 @@ const Navbar = () => {
                   className="rounded-lg transition-colors hover:bg-base-200"
                 >
                   Settings
+                </Link>
+              </li>
+
+              <li>
+                <Link
+                  to="/network"
+                  className="rounded-lg transition-colors hover:bg-base-200"
+                >
+                  My Network
+                </Link>
+              </li>
+
+              <li>
+                <Link
+                  to="/requests"
+                  className="rounded-lg transition-colors hover:bg-base-200"
+                >
+                  Connect Requests
                 </Link>
               </li>
 

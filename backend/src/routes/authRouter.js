@@ -37,6 +37,7 @@ authRouter.post("/signup", async (req, res) => {
 
     await curUser.save();
 
+    res.cookie("loginToken", curUser.getJWT());
     res.status(201).json({
       message: "User created successfully",
       data: curUser,

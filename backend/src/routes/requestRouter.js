@@ -94,7 +94,7 @@ requestRouter.post(
 
       res.status(200).json({
         message: "Request Accepted check the request document",
-        resultData: resultData,
+        apiResult: resultData,
       });
     } catch (error) {
       res.status(400).json({
