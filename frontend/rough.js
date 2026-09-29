@@ -1,192 +1,365 @@
-import React, { useState } from "react";
-import { Eye, EyeOff, LockKeyhole } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
+import { Users, Network, UserRound, Check, X } from "lucide-react";
+
 import { BASE_URL } from "../utils/constants";
+import {
+  setRequests,
+  setConnections,
+  removeRequest,
+} from "../app/networkSlice";
 
-const ResetPassword = () => {
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+const ShowNetwork = () => {
+  const dispatch = useDispatch();
 
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const requests = useSelector((store) => store.network.requests);
+  const connections = useSelector((store) => store.network.connections);
+  const curUser = useSelector((store) => store.user);
 
+  const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState(null);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [toast, setToast] = useState(null);
 
-  const handleResetPassword = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-
-    if (newPassword !== confirmPassword) {
-      setError("New password and confirm password do not match.");
-      return;
-    }
-
-    if (currentPassword === newPassword) {
-      setError("New password must be different from current password.");
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      setError("New password must be at least 8 characters long.");
-      return;
-    }
-
-    setIsLoading(true);
-
+  // Fetch both requests and connections
+  const fetchNetworkData = useCallback(async () => {
     try {
-      await axios.patch(
-        `${BASE_URL}/profile/reset-password`,
-        {
-          currentPassword,
-          newPassword,
-        },
+      setError("");
+
+      const [requestResponse, connectionResponse] = await Promise.all([
+        axios.get(`${BASE_URL}/user/requests/received`, {
+          withCredentials: true,
+        }),
+        axios.get(`${BASE_URL}/user/connections`, {
+          withCredentials: true,
+        }),
+      ]);
+
+      dispatch(setRequests(requestResponse.data.apiResult ?? []));
+
+      dispatch(setConnections(connectionResponse.data.apiResult ?? []));
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Unable to fetch requests and connections.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [dispatch]);
+
+  useEffect(() => {
+    fetchNetworkData();
+  }, [fetchNetworkData]);
+
+  // Hide toast after 5 seconds
+  useEffect(() => {
+    if (!toast) return;
+
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  // Accept or reject a connection request
+  const handleReview = async (request, status) => {
+    try {
+      setProcessingId(request._id);
+      setToast(null);
+      setError("");
+
+      const response = await axios.post(
+        `${BASE_URL}/user/request/review/${status}/${request._id}`,
+        {},
         { withCredentials: true },
       );
 
-      setSuccess("Password reset successfully!");
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch (error) {
-      setError(
-        error.response?.data?.message ||
-          "Failed to reset password. Please try again.",
-      );
+      dispatch(removeRequest(request._id));
+
+      setToast({
+        type: "success",
+        message: response.data.message || `Request ${status} successfully`,
+      });
+
+      // Refresh both sections after the review.
+      await fetchNetworkData();
+    } catch (err) {
+      setToast({
+        type: "error",
+        message:
+          err.response?.data?.message ||
+          err.response?.data?.error ||
+          "Unable to update the request.",
+      });
     } finally {
-      setIsLoading(false);
+      setProcessingId(null);
     }
   };
 
-  return (
-    <div className="flex min-h-screen items-start justify-center bg-base-100 px-4 py-10">
-      <div className="card w-full max-w-md border border-base-300 bg-base-200 shadow-xl">
-        <div className="card-body gap-5">
-          <div className="flex flex-col items-center gap-2">
-            <div className="rounded-full bg-success/10 p-4 text-success">
-              <LockKeyhole size={32} />
+  // Get the other user's details from a connection.
+  const getConnectionUser = (connection) => {
+    if (!connection) return null;
+
+    // The API may return the user directly.
+    if (connection.firstName) {
+      return connection;
+    }
+
+    const fromUser = connection.fromUserId;
+    const toUser = connection.toUserId;
+    const currentUserId = curUser?._id?.toString();
+
+    // Both users are populated.
+    if (
+      fromUser &&
+      typeof fromUser === "object" &&
+      toUser &&
+      typeof toUser === "object"
+    ) {
+      return fromUser._id?.toString() === currentUserId ? toUser : fromUser;
+    }
+
+    // Only one side is populated.
+    if (fromUser && typeof fromUser === "object") {
+      return fromUser._id?.toString() === currentUserId ? null : fromUser;
+    }
+
+    if (toUser && typeof toUser === "object") {
+      return toUser._id?.toString() === currentUserId ? null : toUser;
+    }
+
+    // Alternative response shape.
+    return connection.user || connection.connectedUser || null;
+  };
+
+  // Reusable user card
+  const UserCard = ({ user, children }) => {
+    if (!user || typeof user !== "object") {
+      return (
+        <div className="alert alert-warning">User details are unavailable.</div>
+      );
+    }
+
+    return (
+      <div className="card border border-base-300 bg-base-100 shadow-sm">
+        <div className="card-body flex flex-col gap-5 sm:flex-row sm:items-center">
+          <div className="avatar">
+            <div className="w-28 rounded-xl bg-base-200 sm:w-36">
+              {user.photoUrl ? (
+                <img
+                  src={user.photoUrl}
+                  alt={`${user.firstName || "User"}'s profile`}
+                />
+              ) : (
+                <div className="flex h-full min-h-28 items-center justify-center">
+                  <UserRound size={48} className="text-base-content/40" />
+                </div>
+              )}
             </div>
-            <h2 className="card-title text-2xl font-bold">Reset Password</h2>
-            <p className="text-center text-sm opacity-70">
-              Enter your current password and choose a new one.
-            </p>
           </div>
 
-          <div className="divider my-0" />
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xl font-bold">
+              {user.firstName} {user.lastName}
+            </h2>
 
-          <form onSubmit={handleResetPassword} className="flex flex-col gap-4">
-            {/* Current Password */}
-            <label className="form-control w-full">
-              <span className="label-text mb-2 font-medium">
-                Current Password
-              </span>
-              <div className="input input-bordered flex items-center gap-2">
-                <input
-                  type={showCurrent ? "text" : "password"}
-                  className="grow"
-                  placeholder="Enter current password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  required
-                />
-                <button
-                  type="button"
-                  className="btn btn-square btn-ghost btn-sm"
-                  onClick={() => setShowCurrent(!showCurrent)}
-                  aria-label={showCurrent ? "Hide password" : "Show password"}
-                >
-                  {showCurrent ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
-            </label>
+            <p className="mt-1 text-sm text-base-content/60">
+              {user.age != null ? `${user.age} years` : ""}
+              {user.age != null && user.gender ? " • " : ""}
+              {user.gender || ""}
+            </p>
 
-            {/* New Password */}
-            <label className="form-control w-full">
-              <span className="label-text mb-2 font-medium">New Password</span>
-              <div className="input input-bordered flex items-center gap-2">
-                <input
-                  type={showNew ? "text" : "password"}
-                  className="grow"
-                  placeholder="Enter new password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  minLength={8}
-                  required
-                />
-                <button
-                  type="button"
-                  className="btn btn-square btn-ghost btn-sm"
-                  onClick={() => setShowNew(!showNew)}
-                  aria-label={showNew ? "Hide password" : "Show password"}
-                >
-                  {showNew ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
-            </label>
-
-            {/* Confirm Password */}
-            <label className="form-control w-full">
-              <span className="label-text mb-2 font-medium">
-                Confirm New Password
-              </span>
-              <div className="input input-bordered flex items-center gap-2">
-                <input
-                  type={showConfirm ? "text" : "password"}
-                  className="grow"
-                  placeholder="Confirm new password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  minLength={8}
-                  required
-                />
-                <button
-                  type="button"
-                  className="btn btn-square btn-ghost btn-sm"
-                  onClick={() => setShowConfirm(!showConfirm)}
-                  aria-label={showConfirm ? "Hide password" : "Show password"}
-                >
-                  {showConfirm ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
-            </label>
-
-            {/* Error and Success */}
-            {error && (
-              <div className="alert alert-error py-2 text-sm">
-                <span>{error}</span>
-              </div>
+            {user.about && (
+              <p className="mt-2 text-sm text-base-content/80">{user.about}</p>
             )}
 
-            {success && (
-              <div className="alert alert-success py-2 text-sm">
-                <span>{success}</span>
+            {Array.isArray(user.skills) && user.skills.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {user.skills.map((skill) => (
+                  <span
+                    key={skill}
+                    className="badge badge-primary badge-outline"
+                  >
+                    {skill}
+                  </span>
+                ))}
               </div>
             )}
+          </div>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="btn btn-outline btn-success mt-2 w-full text-lg"
-            >
-              {isLoading ? (
-                <>
-                  <span className="loading loading-spinner loading-sm" />
-                  Resetting...
-                </>
-              ) : (
-                "Reset Password"
-              )}
-            </button>
-          </form>
+          {children}
         </div>
+      </div>
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-96 items-center justify-center">
+        <span className="loading loading-spinner loading-lg text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-base-200 px-4 py-8 sm:px-8">
+      {toast && (
+        <div className="toast toast-end toast-top z-50 mt-16">
+          <div
+            className={`alert ${
+              toast.type === "success" ? "alert-success" : "alert-error"
+            }`}
+          >
+            <span>{toast.message}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="mx-auto max-w-6xl">
+        {/* Page heading */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3">
+            <div className="rounded-2xl bg-primary/10 p-4 text-primary">
+              <Network size={32} />
+            </div>
+
+            <h1 className="text-3xl font-bold sm:text-4xl">My Network</h1>
+          </div>
+
+          <p className="mt-3 text-base-content/60">
+            Manage your connection requests and professional network.
+          </p>
+        </div>
+
+        {/* Total counts */}
+        <div className="mb-8 grid gap-4 sm:grid-cols-2">
+          <div className="card border border-base-300 bg-base-100 shadow-sm">
+            <div className="card-body flex-row items-center gap-4">
+              <div className="rounded-xl bg-primary/10 p-4 text-primary">
+                <Users size={28} />
+              </div>
+
+              <div>
+                <p className="text-sm text-base-content/60">New Requests</p>
+                <p className="text-3xl font-bold">{requests.length}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="card border border-base-300 bg-base-100 shadow-sm">
+            <div className="card-body flex-row items-center gap-4">
+              <div className="rounded-xl bg-success/10 p-4 text-success">
+                <Network size={28} />
+              </div>
+
+              <div>
+                <p className="text-sm text-base-content/60">My Connections</p>
+                <p className="text-3xl font-bold">{connections.length}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {error && (
+          <div className="alert alert-error mb-6">
+            <span>{error}</span>
+            <button className="btn btn-sm" onClick={fetchNetworkData}>
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* New Requests */}
+        <section className="mb-10">
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="text-2xl font-bold">New Requests</h2>
+            <span className="badge badge-primary badge-lg">
+              {requests.length}
+            </span>
+          </div>
+
+          {requests.length === 0 ? (
+            <div className="rounded-xl border border-base-300 bg-base-100 p-8 text-center">
+              <Users size={40} className="mx-auto mb-3 text-base-content/30" />
+              <p className="font-semibold">No new requests</p>
+              <p className="mt-1 text-sm text-base-content/60">
+                You don't have any pending connection requests.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-5">
+              {requests.map((request) => (
+                <UserCard key={request._id} user={request.fromUserId}>
+                  <div className="flex shrink-0 gap-3">
+                    <button
+                      className="btn btn-success"
+                      disabled={processingId !== null}
+                      onClick={() => handleReview(request, "accepted")}
+                    >
+                      {processingId === request._id ? (
+                        <span className="loading loading-spinner loading-sm" />
+                      ) : (
+                        <Check size={20} />
+                      )}
+                      Accept
+                    </button>
+
+                    <button
+                      className="btn btn-outline btn-error"
+                      disabled={processingId !== null}
+                      onClick={() => handleReview(request, "rejected")}
+                    >
+                      <X size={20} />
+                      Reject
+                    </button>
+                  </div>
+                </UserCard>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* My Connections */}
+        <section>
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="text-2xl font-bold">My Connections</h2>
+            <span className="badge badge-success badge-lg">
+              {connections.length}
+            </span>
+          </div>
+
+          {connections.length === 0 ? (
+            <div className="rounded-xl border border-base-300 bg-base-100 p-8 text-center">
+              <Network
+                size={40}
+                className="mx-auto mb-3 text-base-content/30"
+              />
+              <p className="font-semibold">No connections yet</p>
+              <p className="mt-1 text-sm text-base-content/60">
+                Your accepted connections will appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-5">
+              {connections.map((connection) => (
+                <UserCard
+                  key={connection._id || connection._id}
+                  user={getConnectionUser(connection)}
+                >
+                  <span className="badge badge-success badge-lg shrink-0">
+                    Connected
+                  </span>
+                </UserCard>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );
 };
 
-export default ResetPassword;
+export default ShowNetwork;

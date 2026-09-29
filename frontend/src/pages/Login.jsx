@@ -5,9 +5,11 @@ import { addUser } from "../app/userSlice";
 import { useNavigate } from "react-router";
 import { BASE_URL } from "../utils/constants";
 import { KeyRound, Eye, EyeOff, Mail } from "lucide-react";
+import { Link } from "react-router";
+import useLoggedIn from "../hooks/useLoggedIn";
 
 const Login = () => {
-  const [emailId, setEmailId] = useState("vikram.singh@test.com");
+  const [emailId, setEmailId] = useState("priya.reddy@test.com");
   const [password, setPassword] = useState("Test@123");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -16,23 +18,7 @@ const Login = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const res = await axios.get(`${BASE_URL}/profile/view`, {
-          withCredentials: true,
-        });
-
-        dispatch(addUser(res.data));
-        navigate("/feed", { replace: true });
-      } catch (error) {
-        // User is not logged in; stay on the login page.
-        console.log("User is not logged in");
-      }
-    };
-
-    checkUser();
-  }, []);
+  useLoggedIn();
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -52,9 +38,7 @@ const Login = () => {
       dispatch(addUser(res.data));
       navigate("/feed", { replace: true });
     } catch (error) {
-      setError(
-        error.response?.data || "An error occurred during login.",
-      );
+      setError(error.response?.data || "An error occurred during login.");
       console.error("Login error:", error);
     } finally {
       setIsLoading(false);
@@ -72,7 +56,7 @@ const Login = () => {
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
             {/* Email */}
             <label className="input input-bordered flex items-center gap-3">
-              <span >
+              <span>
                 <Mail size={18} />
               </span>
 
@@ -128,6 +112,15 @@ const Login = () => {
               )}
             </button>
           </form>
+          <p className="mt-4 text-center text-sm text-base-content/70">
+            Don't have an account?{" "}
+            <Link
+              to="/signup"
+              className="font-semibold text-primary transition-colors hover:text-primary/70"
+            >
+              Sign up
+            </Link>
+          </p>
         </div>
       </div>
     </div>

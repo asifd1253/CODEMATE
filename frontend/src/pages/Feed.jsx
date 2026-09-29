@@ -26,24 +26,11 @@ const Feed = () => {
     fetchFeed();
   }, []);
   return (
-    // <div className="flex flex-wrap justify-center gap-6">
-    //   {feedItems.length > 0 ? (
-    //     feedItems.map((user) => {
-    //       return <UserCard key={user._id} user={user} />;
-    //     })
-    //   ) : (
-    //     <p>Loading users...</p>
-    //   )}
-    // </div>
-    <div className="flex min-h-screen items-center justify-center p-6">
+    <div>
       {feedItems.length > 0 ? (
-        <div className="carousel w-full max-w-md rounded-box">
-          {feedItems.map((user) => (
-            <div key={user._id} className="carousel-item w-full">
-              <UserCard user={user} />
-            </div>
-          ))}
-        </div>
+        feedItems.map((user)=>{
+          return <UserCard user={user} key={user._id} />
+        })
       ) : (
         <p className="text-lg">Loading users...</p>
       )}

@@ -1,12 +1,13 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import UserCard from "./UserCard";
 import axios from "axios";
 import { BASE_URL } from "../utils/constants";
 import useCloudinary from "../hooks/useCloudinary";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { addUser } from "../app/userSlice";
 
-const EditProfile = ({ user }) => {
+const EditProfile = () => {
+  const user = useSelector((store)=> store.user);
   const dispatch = useDispatch();
 
   const [firstName, setFirstName] = useState(user.firstName ?? "");
@@ -16,42 +17,59 @@ const EditProfile = ({ user }) => {
   const [about, setAbout] = useState(user.about ?? "");
   const [photoUrl, setPhotoUrl] = useState(user.photoUrl ?? "");
   const [skills, setSkills] = useState(user.skills ?? []);
-  const [isUploading, setIsUploading] = useState(false);
+
+  // Store the selected file without uploading it.
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const handlePhotoUrl = async (e) => {
+  // Show a local preview of the selected image.
+  useEffect(() => {
+    if (!selectedFile) {
+      setPreviewUrl("");
+      return;
+    }
+
+    const url = URL.createObjectURL(selectedFile);
+    setPreviewUrl(url);
+
+    return () => URL.revokeObjectURL(url);
+  }, [selectedFile]);
+
+  // Selecting a file only stores it in state.
+  const handlePhotoUrl = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setSelectedFile(file);
     setError("");
     setSuccess("");
-    setIsUploading(true);
-
-    try {
-      const uploadedUrl = await useCloudinary(e);
-
-      if (uploadedUrl) {
-        setPhotoUrl(uploadedUrl);
-      } else {
-        setError("Image upload failed. Please try again.");
-      }
-    } catch (error) {
-      console.error("Error uploading image:", error);
-      setError("Image upload failed. Please try again.");
-    } finally {
-      setIsUploading(false);
-      e.target.value = "";
-    }
   };
 
-  const handleEdit = async () => {
+  const handleEdit = async (e) => {
+    e.preventDefault();
+
     setError("");
     setSuccess("");
     setIsSaving(true);
 
     try {
+      let updatedPhotoUrl = photoUrl;
+
+      // Upload the image only when the form is submitted.
+      if (selectedFile) {
+        updatedPhotoUrl = await useCloudinary(selectedFile);
+        console.log(updatedPhotoUrl);
+
+        if (!updatedPhotoUrl) {
+          throw new Error("Image upload failed. Please try again.");
+        }
+      }
+
+      // Save the profile details after obtaining the image URL.
       const response = await axios.patch(
         BASE_URL + "/profile/edit",
         {
@@ -60,18 +78,23 @@ const EditProfile = ({ user }) => {
           age: age === "" ? undefined : Number(age),
           gender,
           about,
-          photoUrl,
+          photoUrl: updatedPhotoUrl,
           skills: skills.filter(Boolean),
         },
         { withCredentials: true },
       );
-      // console.log(response.data.apiResult);
 
       dispatch(addUser(response.data.apiResult));
+      setPhotoUrl(updatedPhotoUrl);
+      setSelectedFile(null);
       setSuccess("Profile updated successfully!");
     } catch (error) {
       console.error("Error updating profile:", error);
-      setError(error.response?.data?.message || "Failed to update profile.");
+      setError(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to update profile.",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -81,7 +104,7 @@ const EditProfile = ({ user }) => {
     <div className="flex min-h-screen flex-col items-center justify-center gap-8 bg-base-100 px-4 py-10 lg:flex-row lg:items-start">
       {/* Edit Profile Form */}
       <div className="card w-full max-w-md border border-base-300 bg-base-200 shadow-xl">
-        <div className="card-body gap-4">
+        <form onSubmit={handleEdit} className="card-body gap-4">
           <h2 className="card-title justify-center text-2xl font-bold">
             Edit Profile
           </h2>
@@ -162,16 +185,20 @@ const EditProfile = ({ user }) => {
               accept="image/*"
               className="file-input file-input-bordered w-full"
               onChange={handlePhotoUrl}
-              disabled={isUploading}
+              disabled={isSaving}
             />
-            {isUploading && (
-              <span className="mt-2 text-sm text-info">Uploading image...</span>
+
+            {selectedFile && (
+              <span className="mt-2 text-sm text-info">
+                Image selected. It will upload when you submit.
+              </span>
             )}
-            {photoUrl && (
+
+            {(previewUrl || photoUrl) && (
               <img
-                src={photoUrl}
+                src={previewUrl || photoUrl}
                 alt="Profile preview"
-                className="mt-3 h-24 w-24 cursor-pointer rounded-full object-cover"
+                className="mt-3 h-24 w-24 rounded-full object-cover cursor-pointer"
               />
             )}
           </label>
@@ -183,7 +210,7 @@ const EditProfile = ({ user }) => {
               value={skills.join(", ")}
               className="textarea textarea-bordered min-h-24 w-full"
               placeholder="React, Node.js, MongoDB"
-              nChange={(e) =>
+              onChange={(e) =>
                 setSkills(
                   e.target.value.split(",").map((skill) => skill.trim()),
                 )
@@ -196,6 +223,7 @@ const EditProfile = ({ user }) => {
 
           {/* Status Messages */}
           {error && <p className="text-center text-sm text-error">{error}</p>}
+
           {success && (
             <p className="text-center text-sm text-success">{success}</p>
           )}
@@ -203,9 +231,8 @@ const EditProfile = ({ user }) => {
           {/* Submit */}
           <div className="card-actions mt-4 justify-center">
             <button
-              onClick={handleEdit}
-              type="button"
-              disabled={isSaving || isUploading}
+              type="submit"
+              disabled={isSaving}
               className="btn btn-success w-full text-base"
             >
               {isSaving ? (
@@ -218,7 +245,7 @@ const EditProfile = ({ user }) => {
               )}
             </button>
           </div>
-        </div>
+        </form>
       </div>
 
       {/* Live Profile Preview */}
@@ -227,14 +254,16 @@ const EditProfile = ({ user }) => {
         <div className="w-full">
           <UserCard
             user={{
+              ...user,
               firstName,
               lastName,
               age,
               gender,
               about,
-              photoUrl,
+              photoUrl: previewUrl || photoUrl,
               skills,
             }}
+            showActions={false}
           />
         </div>
       </div>
