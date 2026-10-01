@@ -1,10 +1,29 @@
 import React from "react";
+import { BASE_URL } from "../utils/constants";
+import axios from "axios";
+import { useDispatch } from "react-redux";
+import { removeFromFeed } from "../app/feedSlice";
 
 const UserCard = ({ user, showActions = true }) => {
+  const dispatch = useDispatch();
+
   const { firstName, lastName, photoUrl, about, age, gender, skills } = user;
 
-  const isMoreInfo = (about?.length ?? 0) > 150 || (skills?.length ?? 0) > 10;
+  const handleChoice = async (status) => {
+    try {
+      const response = await axios.post(
+        `${BASE_URL}/request/send/${status}/${user._id}`,
+        {},
+        { withCredentials: true },
+      );
+      // console.log(response.data.apiResult);
+      dispatch(removeFromFeed(user._id));
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
+  const isMoreInfo = (about?.length ?? 0) > 150 || (skills?.length ?? 0) > 10;
   return (
     <div
       className={`card glass mx-auto my-8 h-fit w-full bg-base-100 shadow-xl lg:card-side ${
@@ -49,8 +68,18 @@ const UserCard = ({ user, showActions = true }) => {
 
         {showActions && (
           <div className="card-actions mt-4 justify-end">
-            <button className="btn btn-outline btn-error flex-1">Ignore</button>
-            <button className="btn btn-primary flex-1">Connect</button>
+            <button
+              className="btn btn-outline btn-error flex-1"
+              onClick={() => handleChoice("ignore")}
+            >
+              Ignore
+            </button>
+            <button
+              className="btn btn-primary flex-1"
+              onClick={() => handleChoice("interested")}
+            >
+              Connect
+            </button>
           </div>
         )}
       </div>

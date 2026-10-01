@@ -49,12 +49,12 @@ requestRouter.post(
 
       const savedConnection = await newConnection.save();
 
-      res.status(201).json({
-        message: savedConnection,
+      res.json({
+        apiResult: savedConnection,
       });
     } catch (error) {
       res.status(400).json({
-        error: error.message,
+        message: error.message,
       });
     }
   },
