@@ -28,11 +28,12 @@ const Feed = () => {
   return (
     <div>
       {feedItems.length > 0 ? (
-        feedItems.map((user)=>{
-          return <UserCard user={user} key={user._id} />
-        })
+        // feedItems.map((user)=>{
+        //   return <UserCard user={user} key={user._id} />
+        // })
+        <UserCard user={feedItems[0]} key={feedItems[0]._id} />
       ) : (
-        <p className="text-lg">Loading users...</p>
+        <p className="my-10 text-center text-lg">No users found.</p>
       )}
     </div>
   );

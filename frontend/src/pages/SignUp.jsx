@@ -39,7 +39,7 @@ const SignUp = () => {
       return;
     }
 
-    console.log(formData);
+    // console.log(formData);
     // Add your signup API call here.
     const result = await useSignUp(formData);
 
@@ -49,7 +49,7 @@ const SignUp = () => {
 
     if (result.success) {
       dispatch(addUser(result.data?.data));
-      navigate("/feed");
+      navigate("/profile/edit");
     }
   };
 
