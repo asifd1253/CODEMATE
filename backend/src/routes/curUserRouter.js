@@ -2,8 +2,8 @@ const express = require("express");
 const curUserRouter = express.Router();
 
 const { authenticateUser } = require("../middlewares/authenticateUser.js");
-const Connect = require("../models/Connect.js");
-const User = require("../models/User.js");
+const Connect = require("../models/connect");
+const User = require("../models/user");
 
 const OTHERS_USER_SAFE_DATA =
   "firstName lastName age skills photoUrl gender about";
