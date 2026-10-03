@@ -9,7 +9,7 @@ const authenticateUser = async (req, res, next) => {
         .status(401)
         .json({ message: "Cookies expired login again..." });
     }
-    const decodedValue = jwt.verify(loginToken, "CODEMATE@jwttoken");
+    const decodedValue = jwt.verify(loginToken, process.env.JWT_SECRET);
 
     const { _id } = decodedValue;
 
