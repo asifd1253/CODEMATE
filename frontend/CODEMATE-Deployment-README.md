@@ -4,23 +4,23 @@ This README documents the deployment steps completed so far.
 
 ## 1. Deployment overview
 
--   **Application:** CODEMATE
--   **Domain:** `code-mate.in`
--   **WWW domain:** `www.code-mate.in`
--   **EC2 public IPv4:** `3.26.50.89`
--   **AWS region:** Asia Pacific (Sydney), `ap-southeast-2`
--   **Server:** Ubuntu
--   **Frontend:** React + Vite
--   **Backend:** Node.js + Express
--   **Database:** MongoDB Atlas
--   **Web server / reverse proxy:** Nginx
--   **Process manager:** PM2
--   **DNS and proxy:** Cloudflare
--   **TLS certificate:** Let's Encrypt via Certbot
+- **Application:** CODEMATE
+- **Domain:** `code-mate.in`
+- **WWW domain:** `www.code-mate.in`
+- **EC2 public IPv4:** `3.26.50.89`
+- **AWS region:** Asia Pacific (Sydney), `ap-southeast-2`
+- **Server:** Ubuntu
+- **Frontend:** React + Vite
+- **Backend:** Node.js + Express
+- **Database:** MongoDB Atlas
+- **Web server / reverse proxy:** Nginx
+- **Process manager:** PM2
+- **DNS and proxy:** Cloudflare
+- **TLS certificate:** Let's Encrypt via Certbot
 
 ### Request flow
 
-``` text
+```text
 Browser
   |
   | HTTPS
@@ -53,20 +53,23 @@ accessed from Windows PowerShell using the downloaded PEM key.
 
 Example SSH command (adjust the key path if necessary):
 
-``` powershell
-ssh -i "C:\path\to\codemate-secret.pem" ubuntu@3.26.50.89
+```powershell
+cd "D:\MERN FULL STACK\Node.js + Express.js\CODEMATE"
+ssh -i ".\codemate-secret.pem" ubuntu@3.26.50.89
 ```
 
 ### Security group inbound rules
 
 The inbound rules used during this setup:
 
-  Type         Protocol     Port Source
-  ------------ ---------- ------ -------------------------------------
-  SSH          TCP            22 `0.0.0.0/0` as currently configured
-  Custom TCP   TCP          3000 `0.0.0.0/0`
-  HTTP         TCP            80 `0.0.0.0/0`
-  HTTPS        TCP           443 `0.0.0.0/0`
+Type Protocol Port Source
+
+---
+
+SSH TCP 22 `0.0.0.0/0` as currently configured
+Custom TCP TCP 3000 `0.0.0.0/0`
+HTTP TCP 80 `0.0.0.0/0`
+HTTPS TCP 443 `0.0.0.0/0`
 
 Port `3000` is intentionally being kept open to follow the tutorial. For
 improved security, public access to it can be removed later because
@@ -77,14 +80,14 @@ restricted to your own IP address.
 
 Run these commands in the **Ubuntu SSH terminal**:
 
-``` bash
+```bash
 sudo apt update
 sudo apt install -y git curl nginx
 ```
 
 Check Nginx:
 
-``` bash
+```bash
 sudo systemctl status nginx
 ```
 
@@ -97,14 +100,14 @@ installed on EC2 using NVM.
 
 Install NVM if it is not already installed:
 
-``` bash
+```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
 source ~/.bashrc
 ```
 
 Install and use Node.js:
 
-``` bash
+```bash
 nvm install 22.13.1
 nvm use 22.13.1
 node -v
@@ -116,7 +119,7 @@ npm -v
 The project uses one repository with separate `backend/` and `frontend/`
 directories:
 
-``` text
+```text
 CODEMATE/
 ├── backend/
 └── frontend/
@@ -124,7 +127,7 @@ CODEMATE/
 
 Clone it on EC2:
 
-``` bash
+```bash
 cd ~
 git clone https://github.com/asifd1253/CODEMATE.git
 cd ~/CODEMATE
@@ -132,14 +135,14 @@ cd ~/CODEMATE
 
 Check the checked-out branch:
 
-``` bash
+```bash
 git branch --show-current
 ```
 
 Pull the branch that contains the code you intend to deploy. For
 example:
 
-``` bash
+```bash
 git pull origin main
 ```
 
@@ -154,7 +157,7 @@ The backend is in `backend/`, and the PM2 entry point used is
 
 Install dependencies:
 
-``` bash
+```bash
 cd ~/CODEMATE/backend
 npm install
 ```
@@ -172,20 +175,20 @@ connection and that the server was listening on port `3000`.
 
 Install PM2 globally under the NVM-managed Node installation:
 
-``` bash
+```bash
 npm install -g pm2
 ```
 
 Start the backend:
 
-``` bash
+```bash
 cd ~/CODEMATE/backend
 pm2 start src/app.js --name codemate-backend
 ```
 
 Useful commands:
 
-``` bash
+```bash
 pm2 status
 pm2 logs codemate-backend
 pm2 restart codemate-backend
@@ -194,20 +197,20 @@ pm2 stop codemate-backend
 
 Save the process list:
 
-``` bash
+```bash
 pm2 save
 ```
 
 To configure PM2 to start after a reboot:
 
-``` bash
+```bash
 pm2 startup
 ```
 
 Run the startup command printed by PM2, then save the process list
 again:
 
-``` bash
+```bash
 pm2 save
 ```
 
@@ -219,7 +222,7 @@ and Nginx.
 
 Build the frontend on EC2:
 
-``` bash
+```bash
 cd ~/CODEMATE/frontend
 npm install
 npm run build
@@ -228,7 +231,7 @@ npm run build
 Vite creates the production build in `frontend/dist/`. Copy the build
 contents to Nginx's web root:
 
-``` bash
+```bash
 sudo cp -r dist/. /var/www/html/
 ```
 
@@ -238,13 +241,13 @@ Nginx serves the frontend and reverse-proxies API requests to Express.
 
 Edit the default site:
 
-``` bash
+```bash
 sudo nano /etc/nginx/sites-available/default
 ```
 
 The intended configuration:
 
-``` nginx
+```nginx
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
@@ -275,13 +278,13 @@ differs, align the Nginx and frontend paths.
 
 Test the configuration:
 
-``` bash
+```bash
 sudo nginx -t
 ```
 
 If successful, reload Nginx and check its status:
 
-``` bash
+```bash
 sudo systemctl reload nginx
 sudo systemctl status nginx
 ```
@@ -292,10 +295,12 @@ The site was reachable over HTTP at `http://3.26.50.89` during testing.
 
 The domain `code-mate.in` was added to Cloudflare. The DNS records were:
 
-  Name             Type    Content          Proxy status
-  ---------------- ------- ---------------- --------------
-  `code-mate.in`   A       `3.26.50.89`     Proxied
-  `www`            CNAME   `code-mate.in`   Proxied
+Name Type Content Proxy status
+
+---
+
+`code-mate.in` A `3.26.50.89` Proxied
+`www` CNAME `code-mate.in` Proxied
 
 The records were initially DNS only and later changed to **Proxied**
 (orange cloud). With proxy enabled, DNS lookups can return Cloudflare IP
@@ -306,7 +311,7 @@ addresses instead of the EC2 address; that is expected.
 Certbot was run on the Ubuntu EC2 instance to request and install a
 Let's Encrypt certificate for both hostnames:
 
-``` bash
+```bash
 sudo certbot --nginx -d code-mate.in -d www.code-mate.in
 ```
 
@@ -315,7 +320,7 @@ Certbot successfully issued and deployed the certificate in Nginx.
 
 Certificate files:
 
-``` text
+```text
 /etc/letsencrypt/live/code-mate.in/fullchain.pem
 /etc/letsencrypt/live/code-mate.in/privkey.pem
 ```
@@ -325,7 +330,7 @@ setup showed an expiry date of `2026-12-31`.
 
 Check certificates and test renewal:
 
-``` bash
+```bash
 sudo certbot certificates
 sudo certbot renew --dry-run
 ```
@@ -344,18 +349,18 @@ Encrypt certificate.
 
 ## 12. Verification completed
 
--   EC2 was accessible through SSH.
--   Nginx was running.
--   The backend was running under PM2.
--   Backend logs showed MongoDB connected and the server listening on
-    port `3000`.
--   `http://3.26.50.89` returned `HTTP/1.1 200 OK`.
--   `http://code-mate.in` returned `HTTP/1.1 200 OK` before HTTPS setup.
--   Certbot successfully issued and deployed a certificate for both
-    domain names.
--   `https://code-mate.in` and `https://www.code-mate.in` both opened
-    successfully.
--   The login page and main application interface were accessible.
+- EC2 was accessible through SSH.
+- Nginx was running.
+- The backend was running under PM2.
+- Backend logs showed MongoDB connected and the server listening on
+  port `3000`.
+- `http://3.26.50.89` returned `HTTP/1.1 200 OK`.
+- `http://code-mate.in` returned `HTTP/1.1 200 OK` before HTTPS setup.
+- Certbot successfully issued and deployed a certificate for both
+  domain names.
+- `https://code-mate.in` and `https://www.code-mate.in` both opened
+  successfully.
+- The login page and main application interface were accessible.
 
 ## 13. Deploy future changes
 
@@ -363,14 +368,14 @@ After pushing code to the branch used for deployment, connect to EC2 and
 pull that branch. Example for `main` (change it if you deploy from
 another branch):
 
-``` bash
+```bash
 cd ~/CODEMATE
 git pull origin main
 ```
 
 If frontend files changed, rebuild and copy them:
 
-``` bash
+```bash
 cd ~/CODEMATE/frontend
 npm install
 npm run build
@@ -380,7 +385,7 @@ sudo cp -r dist/. /var/www/html/
 If backend files or dependencies changed, install dependencies and
 restart PM2:
 
-``` bash
+```bash
 cd ~/CODEMATE/backend
 npm install
 pm2 restart codemate-backend
@@ -391,24 +396,26 @@ backend logs afterward.
 
 ## 14. Current status
 
-  Component                   Status
-  --------------------------- -----------------------------------
-  AWS EC2 Ubuntu              Set up
-  SSH access                  Working
-  Node.js via NVM             Installed
-  Git repository              Cloned
-  Backend                     Running with PM2
-  MongoDB Atlas               Connection verified in logs
-  Frontend build              Deployed to Nginx web root
-  Nginx                       Serving frontend and proxying API
-  Cloudflare DNS              Configured and proxied
-  Let's Encrypt certificate   Issued and deployed
-  HTTPS on apex and `www`     Working
-  Port 3000                   Intentionally left open
+Component Status
+
+---
+
+AWS EC2 Ubuntu Set up
+SSH access Working
+Node.js via NVM Installed
+Git repository Cloned
+Backend Running with PM2
+MongoDB Atlas Connection verified in logs
+Frontend build Deployed to Nginx web root
+Nginx Serving frontend and proxying API
+Cloudflare DNS Configured and proxied
+Let's Encrypt certificate Issued and deployed
+HTTPS on apex and `www` Working
+Port 3000 Intentionally left open
 
 ## 15. Troubleshooting commands
 
-``` bash
+```bash
 # Test Nginx configuration
 sudo nginx -t
 
@@ -435,7 +442,7 @@ sudo certbot certificates
 If Nginx configuration is changed, run `sudo nginx -t` before reloading
 it. If the backend fails, inspect `pm2 logs codemate-backend`.
 
-------------------------------------------------------------------------
+---
 
 **Note:** This README records the deployment work and successful checks
 completed so far. Never store PEM keys, passwords, JWT secrets, or
