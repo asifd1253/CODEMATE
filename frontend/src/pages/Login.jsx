@@ -9,8 +9,8 @@ import { Link } from "react-router";
 import useLoggedIn from "../hooks/useLoggedIn";
 
 const Login = () => {
-  const [emailId, setEmailId] = useState("priya.reddy@test.com");
-  const [password, setPassword] = useState("Test@123");
+  const [emailId, setEmailId] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
