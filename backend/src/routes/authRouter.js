@@ -56,14 +56,16 @@ authRouter.post("/login", async (req, res) => {
 
     if (!curUser) {
       return res.status(400).json({
-        message: "Invalid credentials",
+        message: "User not found",
       });
     }
     if (await curUser.isPasswordSame(password)) {
       res.cookie("loginToken", curUser.getJWT());
       res.send(curUser);
     } else {
-      throw new Error("Invalid credentials");
+      return res.status(400).json({
+        message: "Invalid credentials",
+      });
     }
   } catch (error) {
     res.status(400).send(error.message);

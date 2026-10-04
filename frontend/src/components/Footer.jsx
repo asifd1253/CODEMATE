@@ -48,7 +48,7 @@ const Footer = () => {
       </nav>
       <aside className="h-1">
         <p>
-          Copyright © {new Date().getFullYear()} - All right reserved by ACME
+          Copyright © {new Date().getFullYear()} - All right reserved by Asif
           Industries Ltd
         </p>
       </aside>

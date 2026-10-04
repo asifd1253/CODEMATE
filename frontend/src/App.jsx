@@ -9,6 +9,7 @@ import store from "./app/store";
 import Feed from "./pages/Feed";
 import Settings from "./pages/Settings";
 import ResetPassword from "./components/ResetPassword";
+import DeleteAccount from "./components/DeleteAccount";
 import EditProfile from "./components/EditProfile";
 import MyNetwork from "./pages/MyNetwork";
 import SignUp from "./pages/SignUp";
@@ -28,6 +29,7 @@ const App = () => {
               <Route path="/profile" element={<Profile />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/delete-account" element={<DeleteAccount />} />
               <Route path="/profile/edit" element={<EditProfile />} />
               <Route path="/network" element={<MyNetwork />} />
               <Route path="/requests" element={<MyRequests />} />

@@ -38,7 +38,7 @@ const Login = () => {
       dispatch(addUser(res.data));
       navigate("/feed", { replace: true });
     } catch (error) {
-      setError(error.response?.data || "An error occurred during login.");
+      setError(error.response?.data.message || "An error occurred during login.");
       console.error("Login error:", error);
     } finally {
       setIsLoading(false);

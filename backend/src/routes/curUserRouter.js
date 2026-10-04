@@ -1,5 +1,6 @@
 const express = require("express");
 const curUserRouter = express.Router();
+const bcrypt = require("bcrypt");
 
 const { authenticateUser } = require("../middlewares/authenticateUser.js");
 const Connect = require("../models/Connect");
@@ -98,6 +99,65 @@ curUserRouter.get("/user/feed", authenticateUser, async (req, res) => {
     });
   } catch (error) {
     res.status(400).json({ message: error.message });
+  }
+});
+
+curUserRouter.delete("/user/delete", authenticateUser, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { password } = req.body;
+
+    // Check if password is provided
+    if (!password) {
+      return res.status(400).json({
+        message: "Current password is required.",
+      });
+    }
+
+    // Find the user
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found.",
+      });
+    }
+
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        message: "Incorrect password.",
+      });
+    }
+
+    // Delete all connections involving this user
+    await Connect.deleteMany({
+      $or: [{ fromUserId: userId }, { toUserId: userId }],
+    });
+
+    // Delete the user
+    const deletedUser = await User.findByIdAndDelete(userId);
+
+    if (!deletedUser) {
+      return res.status(404).json({
+        message: "User not found.",
+      });
+    }
+
+    // Clear login cookie
+    res.clearCookie("loginToken");
+
+    return res.status(200).json({
+      message: "Account deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Delete account error:", error);
+
+    return res.status(500).json({
+      message: "Error deleting account.",
+    });
   }
 });
 
